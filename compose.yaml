@@ -1,0 +1,46 @@
+version: "3.5"
+services:
+  web:
+    image: "rhzx3519/react-2024-uow-hackathon"
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - react-go
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  price-server:
+    image: "${repository}/price-store:latest"
+    ports:
+      - "8081:80"
+    networks:
+      - go-mysql
+      - react-go
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: "mysql:8.1.0"
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./db/mysql/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - go-mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 2
+
+secrets:
+  db-password:
+    file: db/mysql/password.txt
+networks:
+  react-go: {}
+  go-mysql: {}
+  python-mysql: {}
